@@ -41,3 +41,16 @@ class UserDetails(BaseModel):
 class checkImages(BaseModel):
     empID: str
     images: List[str]
+
+
+class LogDetails(BaseModel):
+    gloves: bool
+    helmet: bool
+    glasses: bool
+    jacket: bool
+    boots: bool
+
+class KioskLog(BaseModel):
+    empID: str
+    log: LogDetails
+    

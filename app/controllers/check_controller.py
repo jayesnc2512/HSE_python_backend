@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from bson import ObjectId
 from pymongo.errors import PyMongoError
 from ..helpers.model.checkImage import detect_safety_gear
-from ..helpers.modelAPI import modelAPI
+from ..helpers.modelAPI import ModelAPI
 import base64
 
 
@@ -27,9 +27,10 @@ class checkController:
                 #     saved_images.append(image_path)
             
             # Call the asynchronous function properly using await
-            detection_results1 = await modelAPI.kioskInference(images[0])
-            detection_results2 = await modelAPI.kioskInference(images[1])
+            detection_results1 = await ModelAPI.process_inference(images[0])
+            detection_results2 = await ModelAPI.process_inference(images[1])
 
+            
             return [detection_results1, detection_results2]
 
         except Exception as e:

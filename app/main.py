@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
 from app.routes.demo_routes import router as demo_router
 from app.routes.auth_routes import router as auth_router
 from app.routes.check_routes import router as check_router
+from app.routes.dash_routes import router as dash_router
 
 app = FastAPI()
 
@@ -27,6 +28,9 @@ app.add_middleware(
 app.include_router(demo_router,prefix="/demo")
 app.include_router(auth_router,prefix="/auth")
 app.include_router(check_router,prefix="/check")
+app.include_router(dash_router,prefix="/dash")
+
+
 
 @app.on_event("startup")
 async def on_startup():
