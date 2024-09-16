@@ -1,5 +1,7 @@
 import cv2
 from inference_sdk import InferenceHTTPClient
+import matplotlib.pyplot as plt
+
 
 class VideoObjectDetection:
     api_url = "https://detect.roboflow.com"
@@ -9,9 +11,7 @@ class VideoObjectDetection:
 
     @staticmethod
     def resize_frame(frame, max_width=480, max_height=320):
-        """
-        Resize the frame to a manageable size if it exceeds max dimensions.
-        """
+      
         height, width = frame.shape[:2]
         if width > max_width or height > max_height:
             scaling_factor = min(max_width / width, max_height / height)
@@ -29,15 +29,9 @@ class VideoObjectDetection:
             # Resize the frame to prevent dimension errors
             frame = VideoObjectDetection.resize_frame(frame)
 
-            # Encode the frame to JPEG format in memory
-            success, encoded_image = cv2.imencode('.jpg', frame)
-            if not success:
-                print("Error encoding frame")
-                return frame
-
             # Perform inference by sending the bytes directly
-            result = VideoObjectDetection.client.infer(encoded_image, model_id=VideoObjectDetection.model_id)
-
+            result = VideoObjectDetection.client.infer(frame, model_id=VideoObjectDetection.model_id)
+            print(result)
             # Process the results and draw bounding boxes
             predictions = result.get("predictions", [])
             for prediction in predictions:
@@ -64,48 +58,63 @@ class VideoObjectDetection:
         except Exception as e:
             print(f"Error processing frame: {e}")
             return None
-
-    @staticmethod
-    def detect_from_video(video_path, output_path=None):
+            
+    def detect_from_video(video_path, output_path=None, target_fps=3):
         try:
-            # Capture video from file or webcam
+            print("detect_from_video invoked")
+            if video_path=="0" or video_path=="1" or video_path=="2":
+                video_path=int(video_path)
+
+
             cap = cv2.VideoCapture(video_path)
 
-            # Get video dimensions and frame rate
+            if not cap.isOpened():
+                    print("Error opening video capture")
+                    return
+
             frame_width = int(cap.get(3))
             frame_height = int(cap.get(4))
-            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            original_fps = cap.get(cv2.CAP_PROP_FPS) if cap.get(cv2.CAP_PROP_FPS) > 0 else 30  # Default to 30 FPS if not available
 
-            # Video writer to save the output if output_path is provided
+            # Calculate the frame interval to achieve target_fps
+            frame_interval = int(original_fps / target_fps)
+            # frame_interval = int(original_fps / 1) # NO frame skipped
+
+
             if output_path:
-                out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'XVID'), fps, (frame_width, frame_height))
+                out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'XVID'), target_fps, (frame_width, frame_height))
 
+            frame_number = 0
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                # Process the current frame and draw detections
-                processed_frame = VideoObjectDetection.process_frame(frame)
+                # Process the frame only if it is the right frame in the sequence
+                if frame_number % frame_interval == 0:
+                    processed_frame = VideoObjectDetection.process_frame(frame)
+                    if processed_frame is not None:
+                        # Display using Matplotlib
+                        rgb_frame = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
+                        plt.imshow(rgb_frame)
+                        plt.axis('off')
+                        plt.show(block=False)  # Non-blocking display
+                        plt.pause(0.001)  # Adjust pause time as needed
+                        if output_path:
+                            out.write(processed_frame)
 
-                # Display the frame with bounding boxes
-                if processed_frame is not None:
-                    cv2.imshow("Detected Video", processed_frame)
+                            
+                frame_number += 1
 
-                # Save frame to output video if required
-                if output_path and processed_frame is not None:
-                    out.write(processed_frame)
-
-                # Break the loop when 'q' is pressed
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-            # Release video capture and writer objects
             cap.release()
             if output_path:
                 out.release()
-
-            # Close OpenCV windows
             cv2.destroyAllWindows()
+
         except Exception as err:
             print(f"Error in detect_from_video: {err}")
+
+        def save_frame_as_image(frame, frame_number):
+            filename = f"frame_{frame_number:04d}.jpg"
+            cv2.imwrite(filename, frame)
+            print(f"Saved frame as {filename}")
