@@ -41,7 +41,7 @@ async def sendLog(body: KioskLog):
 
         # Insert the log data into the kioskLogs collection
         result = kiosk_logs_collection.insert_one(log_data)
-        email_body=f"Hello\n Employee ID:{KioskLog['empID']}\n\n was detected not following proper KIT \n \n logs:{log_data} "
+        email_body=f"Hello\n Employee ID:{body.empID}\n\n was detected not following proper KIT \n \n logs:{log_data['log']} "
         send_email(email_body)
         
         if result.inserted_id:
